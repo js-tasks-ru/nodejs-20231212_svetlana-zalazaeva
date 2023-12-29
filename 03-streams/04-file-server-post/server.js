@@ -4,7 +4,7 @@ const path = require('path');
 const LimitSizeStream = require('./LimitSizeStream');
 
 const server = new http.Server();
-const fs = require('fs');
+const fse = require('fs-extra');
 
 server.on('request', (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -17,7 +17,7 @@ server.on('request', (req, res) => {
 
   const filepath = path.join(__dirname, 'files', pathname);
 
-  if (fs.existsSync(filepath)) {
+  if (fse.existsSync(filepath)) {
     res.statusCode = 409;
     return res.end();
   }
@@ -26,38 +26,40 @@ server.on('request', (req, res) => {
   switch (req.method) {
     case 'POST':
     const limitedStream = new LimitSizeStream({limit: 1000000}); // 1 Мбайт 1000000
-    const outStream = fs.createWriteStream(filepath);
+    const outStream = fse.createWriteStream(filepath);
 
     req.pipe(limitedStream).pipe(outStream)
-    let bigFile = false;
+    let needDelete = false;
+    let statusCode;
 
     limitedStream.on('error', (err) => {
-        bigFile = true
+        needDelete = true;
+        statusCode = 413;
         outStream.close()
     })
 
     limitedStream.on('close', (err) => {
-        if (!bigFile) {
-            res.statusCode = 201;
+        if (!needDelete) {
+            statusCode = 201;
+            res.statusCode = statusCode;
             res.end()
         } 
       })
 
 
     outStream.on('close', (err) => {
-        if (bigFile) {
-            fs.rmSync(filepath)
-            res.statusCode = 413;
+        if (needDelete) {
+            fse.removeSync(filepath)
+            res.statusCode = statusCode;
         } 
         res.end()
     })
 
     req.on('error', (err) => {
         if (err) {
-            bigFile = false;
+            needDelete = true;
             outStream.close()
-            fs.rmSync(filepath)
-            res.statusCode = 500;
+            statusCode = 500;
         }
         res.end()
     })

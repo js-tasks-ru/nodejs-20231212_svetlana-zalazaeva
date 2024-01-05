@@ -1,68 +1,61 @@
-const url = require('url');
-const http = require('http');
-const path = require('path');
+const http = require('node:http');
+const path = require('node:path');
 const LimitSizeStream = require('./LimitSizeStream');
 
 const server = new http.Server();
-const fse = require('fs-extra');
+const fs = require('node:fs');
 
 server.on('request', (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname.slice(1);
 
-  if (pathname.indexOf('/') !== -1) {
-    res.statusCode = 400;
-    return res.end();
-  }
-
   const filepath = path.join(__dirname, 'files', pathname);
-
-  if (fse.existsSync(filepath)) {
-    res.statusCode = 409;
-    return res.end();
-  }
 
 
   switch (req.method) {
     case 'POST':
-    const limitedStream = new LimitSizeStream({limit: 1000000}); // 1 Мбайт 1000000
-    const outStream = fse.createWriteStream(filepath);
 
-    req.pipe(limitedStream).pipe(outStream)
-    let needDelete = false;
-    let statusCode;
+    if (pathname.includes('/')) {
+      res.statusCode = 400;
+      res.end();
+      return;
+    }
+
+    const limitedStream = new LimitSizeStream({limit: 1000000}); // 1 Мбайт 1000000
+    const outStream = fs.createWriteStream(filepath, { flags: 'wx' });
+
+    outStream.on('finish', () => {
+      res.statusCode = 201;
+      res.end()
+    })
+
+    res.on('close', () => {
+      if (!req.complete) 
+        fs.unlink(filepath, () => {});
+    })
+
+
+    outStream.on('error', (err) => {
+      if (err.code === 'EEXIST') {
+        res.statusCode = 409;
+        res.end();
+      } else {
+        res.statusCode = 500;
+        res.end();
+      }
+    })
 
     limitedStream.on('error', (err) => {
-        needDelete = true;
-        statusCode = 413;
-        outStream.close()
+      if (err.code === 'LIMIT_EXCEEDED') {
+        res.statusCode = 413;
+        res.end();
+      } else {
+        res.statusCode = 500;
+        res.end();
+      }
     })
 
-    limitedStream.on('close', (err) => {
-        if (!needDelete) {
-            statusCode = 201;
-            res.statusCode = statusCode;
-            res.end()
-        } 
-      })
-
-
-    outStream.on('close', (err) => {
-        if (needDelete) {
-            fse.removeSync(filepath)
-            res.statusCode = statusCode;
-        } 
-        res.end()
-    })
-
-    req.on('error', (err) => {
-        if (err) {
-            needDelete = true;
-            outStream.close()
-            statusCode = 500;
-        }
-        res.end()
-    })
+    req.pipe(limitedStream).pipe(outStream)
 
       break;
     default:

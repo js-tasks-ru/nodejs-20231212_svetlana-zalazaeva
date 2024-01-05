@@ -23,7 +23,7 @@ server.on('request', (req, res) => {
 
   switch (req.method) {
     case 'DELETE':
-      fse.removeSync(filepath)
+      fse.rmSync(filepath)
       res.end()
       break;
 

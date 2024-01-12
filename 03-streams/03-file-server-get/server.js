@@ -11,7 +11,7 @@ server.on('request', async (req, res) => {
 
   if (pathname.indexOf('/') !== -1) {
     res.statusCode = 400;
-    res.end();
+    return res.end();
   }
 
   const filepath = path.join(__dirname, 'files', pathname);

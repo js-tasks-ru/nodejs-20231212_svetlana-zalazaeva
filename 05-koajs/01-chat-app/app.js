@@ -12,7 +12,8 @@ let subscribers = {};
 
 router.get('/subscribe', async (ctx) => {
   const r = await new Promise(resolve => {
-    const id = ctx.request.query.r;
+    let id = ctx.request.query.r;
+    if (id === undefined) id = Math.random()
     ctx.state.resolve = resolve;
     subscribers[id] = ctx;
   });

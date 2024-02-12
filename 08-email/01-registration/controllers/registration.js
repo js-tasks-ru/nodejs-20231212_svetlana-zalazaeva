@@ -17,7 +17,7 @@ module.exports.register = async (ctx, next) => {
         password,
         verificationToken: token
     });
-    await user.setPassword(user.password);
+    await user.setPassword(password);
     await user.save();
     const options = {
         to: email,

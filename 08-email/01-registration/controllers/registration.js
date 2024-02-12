@@ -24,7 +24,9 @@ module.exports.register = async (ctx, next) => {
         locals: { token },
         subject: 'Подтвердите почту',
     }
-    await sendMail(options)
+    await sendMail(options);
+    ctx.status = 200;
+    ctx.body = {status: 'ok', location: ctx.response.get('location')};
 };
 
 module.exports.confirm = async (ctx, next) => {

@@ -26,7 +26,7 @@ module.exports.register = async (ctx, next) => {
     }
     await sendMail(options);
     ctx.status = 200;
-    ctx.body = {status: 'ok', location: ctx.response.get('location')};
+    ctx.body = {status: 'ok'};
 };
 
 module.exports.confirm = async (ctx, next) => {

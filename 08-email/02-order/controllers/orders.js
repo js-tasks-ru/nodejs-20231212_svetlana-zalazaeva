@@ -21,12 +21,11 @@ module.exports.checkout = async function checkout(ctx, next) {
         locals: orderConfimationMapper(newOrder, product),
         subject: 'Заказ успешно оформлен',
     }
-    await sendMail(options);
-    newOrder.product = product;
-    ctx.body = { order: orderMapper(newOrder) };
+   await sendMail(options);
+    ctx.body = { order: newOrder.id };
 };
 
 module.exports.getOrdersList = async function ordersList(ctx, next) {
-        let orders = await Order.find({ user: ctx.user.id }).populate('product');
+    let orders = await Order.find({ user: ctx.user.id }).populate('product');
     ctx.body = { orders: orders.map(orderMapper) };
 };

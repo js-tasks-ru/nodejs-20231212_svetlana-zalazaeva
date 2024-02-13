@@ -13,10 +13,7 @@ module.exports.checkout = async function checkout(ctx, next) {
         address,
         user: ctx.user
     });
-    const newOrder = await order.save();
-   /* if (!newOrder) {
-        await handleMongooseValidationError(ctx, next)
-    }*/
+    let newOrder = await order.save();
     product = await Product.findOne({ id: product });
     const options = {
         to: ctx.user.email,
@@ -30,6 +27,6 @@ module.exports.checkout = async function checkout(ctx, next) {
 };
 
 module.exports.getOrdersList = async function ordersList(ctx, next) {
-    let orders = await Order.find({ user: ctx.user.id }).populate('product');
+        let orders = await Order.find({ user: ctx.user.id }).populate('product');
     ctx.body = { orders: orders.map(orderMapper) };
 };
